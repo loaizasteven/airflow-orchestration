@@ -99,3 +99,4 @@ pkill -f airflow
 - **Port conflicts**: Change the port in `start_airflow.sh` or use `--port` flag
 - **Permission issues**: Ensure proper file permissions for the `airflow_home` directory
 - **DAG not showing**: Check DAG syntax and refresh with `airflow dags reserialize`
+- **Examples not showing**: Set `load_examples = True` in `airflow.cfg`.

@@ -19,7 +19,7 @@ This repository contains a local Apache Airflow setup for development and testin
    airflow db migrate
    ```
    
-   > **Note:** The `airflow.cfg` configuration file is included in the repository with optimal settings for local development. The database and logs are generated locally and not tracked in git.
+   > **Note:** The `airflow.cfg` configuration file is included in the repository with optimal settings for local development. The database and logs are generated locally and not tracked in git. You'll need to update the `dags_folder` in [airflow.cfg](./airflow_home/airflow.cfg) file.
 
 2. **Start Airflow Services**
    
@@ -37,8 +37,7 @@ This repository contains a local Apache Airflow setup for development and testin
    - Open http://localhost:8080 in your browser
    - **Login with auto-generated credentials:**
      - Username: `admin`
-     - Password: Check `airflow_home/simple_auth_manager_passwords.json.generated` for the password
-     - Current password: `7PkagmMWmgRxDz7w`
+     - Password: Check [`credentials`](airflow_home/simple_auth_manager_passwords.json.generated) for the password
 
 ### Configuration File (airflow.cfg)
 

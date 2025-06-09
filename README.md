@@ -103,5 +103,5 @@ pkill -f airflow
 
 ## Clean up local db
 
-Run the following command `airflow db clean --clean-before-timestamp "2022-01-01 00:00:00+01:00"`
+Run the following command `airflow db clean --clean-before-timestamp "2025-07-01 00:00:00+01:00"`
 then confirm with `delete rows`.

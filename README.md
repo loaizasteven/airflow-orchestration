@@ -100,3 +100,7 @@ pkill -f airflow
 - **Permission issues**: Ensure proper file permissions for the `airflow_home` directory
 - **DAG not showing**: Check DAG syntax and refresh with `airflow dags reserialize`
 - **Examples not showing**: Set `load_examples = True` in `airflow.cfg`.
+
+## Clean up local db
+
+Run the following command `airflow db clean --clean-before-timestamp "2022-01-01 00:00:00+01:00"

@@ -52,6 +52,17 @@ def custom_xcom_taskflow_dag():
 
         return total / count
 
+    @task(multiple_outputs=True)
+    def compute_all(order_price_data: dict):
+        total = 0
+        count = 0
+
+        for order in order_price_data:
+            total += order_price_data[order]
+            count += 1
+        
+        return {'total_price': total, 'average_price': total / count}
+    
     @task
     def display_results(total: int, average: int):
         print(f"Total price: {total}")
@@ -60,7 +71,8 @@ def custom_xcom_taskflow_dag():
     order_price_data = get_order_price()
     total = compute_sum(order_price_data)
     average = compute_average(order_price_data)
-    display_results(total, average)
+    all_results = compute_all(order_price_data)
+    display_results(all_results['total_price'], all_results['average_price'])
 
 custom_xcom_taskflow_dag()
         

@@ -23,7 +23,7 @@ def branching_taskapi_dag():
         df = pd.read_csv(root_dir / 'datasets' / 'car_data.csv')
         return df.to_json()
 
-    @task.branch # this task will return the task id of the task to be executed
+    @task.branch() # this task will return the task id of the task to be executed
     def determine_branch():
         final_output= Variable.get('transform', default_var=None)
 
@@ -80,6 +80,7 @@ def branching_taskapi_dag():
     write_csv_results_task = PythonOperator(
         task_id='write_csv_results_task',
         python_callable=write_csv_results,
+        trigger_rule='none_failed', # Add this to avoid skipping tasks if one fails
     )
 
     read_csv_file_task >> determine_branch() >> [filter_two_seaters_task, filter_fwds_task] >> write_csv_results_task

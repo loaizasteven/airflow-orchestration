@@ -48,19 +48,40 @@ def branching_taskapi_dag():
         df = pd.read_json(json_data)
 
         # filter the dataframe
-        fwd_df = df[df['DriveTrain'] == 'FWD']
+        fwd_df = df[df['PowerTrain'] == 'FWD']
 
         # push the dataframe to the XComs
         ti.xcom_push(key='transformed_result', value=fwd_df.to_json())
         ti.xcom_push(key='transform_filename', value='fwds')
 
     def write_csv_results(ti):
-        json_data = ti.xcom_pull(task_ids='transform_result')
-        file_name = ti.xcom_pull(task_ids='transform_filename')
+        # Generic approach: try to pull from any upstream task that has the required XCom keys
+        json_data = ti.xcom_pull(key='transformed_result')
+        file_name = ti.xcom_pull(key='transform_filename')
+        
+        # If the generic pull didn't work, try all upstream tasks explicitly
+        if json_data is None or file_name is None:
+            upstream_task_ids = ti.task.upstream_task_ids
+            
+            for task_id in upstream_task_ids:
+                if json_data is None:
+                    json_data = ti.xcom_pull(task_ids=task_id, key='transformed_result')
+                if file_name is None:
+                    file_name = ti.xcom_pull(task_ids=task_id, key='transform_filename')
+                
+                # If we found both pieces of data, we can stop
+                if json_data is not None and file_name is not None:
+                    print(f"Found data from task: {task_id}")
+                    break
+        
+        # Final error check
+        if json_data is None:
+            raise ValueError("No transformed_result found in any upstream task")
+        if file_name is None:
+            raise ValueError("No transform_filename found in any upstream task")
 
         df = pd.read_json(json_data)
-
-        df.to_csv(root_dir / 'datasets' / f'{file_name}.csv', index=False)
+        df.to_csv(root_dir / 'output' / f'{file_name}.csv', index=False)
 
     read_csv_file_task = PythonOperator(
         task_id='read_csv_file_task',
@@ -80,7 +101,7 @@ def branching_taskapi_dag():
     write_csv_results_task = PythonOperator(
         task_id='write_csv_results_task',
         python_callable=write_csv_results,
-        trigger_rule='none_failed', # Add this to avoid skipping tasks if one fails
+        trigger_rule='none_failed_min_one_success', # Runs if at least one upstream task succeeds and none fail
     )
 
     read_csv_file_task >> determine_branch() >> [filter_two_seaters_task, filter_fwds_task] >> write_csv_results_task

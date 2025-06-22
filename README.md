@@ -328,6 +328,31 @@ airflow connections add 'my_prod_database' \
 airflow connections delete 'my_prod_database'
 ```
 
+**macOS Compatibility Issues:**
+
+If you encounter segmentation faults (SIGSEGV) on macOS, this is a known issue due to macOS limitations with process forking and network proxy queries. Here's how to resolve it:
+
+- **Immediate Fix** (for current terminal session):
+  ```bash
+  export PYTHONFAULTHANDLER=true
+  export no_proxy='*'
+  ```
+
+- **Permanent Fix** (add to your `~/.zshrc`):
+  ```bash
+  echo 'export PYTHONFAULTHANDLER=true' >> ~/.zshrc
+  echo 'export no_proxy="*"' >> ~/.zshrc
+  source ~/.zshrc
+  ```
+
+- **Alternative Solution**: Use Docker for Airflow on macOS:
+  ```bash
+  # Docker is the most reliable approach for running Airflow on macOS
+  docker-compose up -d
+  ```
+
+**Note**: Only Linux-based distributions are officially supported as "Production" execution environments for Airflow. macOS is suitable for development but may encounter compatibility issues.
+
 ## Clean up local db
 
 Run the following command `airflow db clean --clean-before-timestamp "2025-07-01 00:00:00+01:00"`

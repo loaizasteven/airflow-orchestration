@@ -185,6 +185,91 @@ sqlite3 datasets/my_sqlite.db
 .exit
 ```
 
+### PostgreSQL Database Operations
+
+#### Setup & Basic Commands
+
+```bash
+# Install and start PostgreSQL (macOS)
+brew install postgresql@15
+brew services start postgresql@15
+
+# Create user database (optional)
+psql -d postgres -c "CREATE DATABASE \"$(whoami)\";"
+
+# Common commands
+psql -d postgres -c "\l"                    # List databases
+psql -d postgres -c "\dt"                   # List tables
+psql -d postgres -c "\d table_name"         # Describe table
+psql -d postgres -c "CREATE DATABASE mydb;" # Create database
+```
+
+#### Airflow Integration
+
+```bash
+# Install provider
+uv pip install apache-airflow-providers-postgres
+
+# Create connection
+airflow connections add 'postgres_default' \
+    --conn-type postgres \
+    --conn-host localhost \
+    --conn-port 5432 \
+    --conn-login postgres \
+    --conn-password your_password \
+    --conn-schema your_database
+```
+
+**Example DAG:**
+```python
+from airflow import DAG
+from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.decorators import task
+from datetime import datetime, timedelta
+
+dag = DAG('postgres_example', start_date=datetime(2024, 1, 1), schedule=timedelta(days=1))
+
+create_table = PostgresOperator(
+    task_id='create_table',
+    postgres_conn_id='postgres_default',
+    sql="CREATE TABLE IF NOT EXISTS employees (id SERIAL PRIMARY KEY, name VARCHAR(100), dept VARCHAR(50));",
+    dag=dag
+)
+
+@task
+def query_data():
+    hook = PostgresHook(postgres_conn_id='postgres_default')
+    return hook.get_records("SELECT * FROM employees;")
+
+create_table >> query_data()
+```
+
+#### Common SQL Operations
+
+```sql
+-- Basic table operations
+CREATE TABLE employees (id SERIAL PRIMARY KEY, name VARCHAR(100), salary DECIMAL(10,2));
+INSERT INTO employees (name, salary) VALUES ('John Doe', 75000.00);
+SELECT * FROM employees WHERE salary > 50000;
+UPDATE employees SET salary = salary * 1.1 WHERE dept = 'Engineering';
+
+-- Advanced features
+SELECT name, RANK() OVER (ORDER BY salary DESC) FROM employees;  -- Window functions
+CREATE INDEX idx_employees_dept ON employees(dept);               -- Performance
+```
+
+#### Troubleshooting
+
+```bash
+# Check service status
+brew services list | grep postgres
+
+# Common fixes
+psql -d postgres -c "CREATE DATABASE your_database;"  # Database doesn't exist
+brew services restart postgresql@15                   # Connection issues
+```
+
 ### Environment Variables
 
 - `AIRFLOW_HOME`: Path to Airflow configuration and database files

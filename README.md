@@ -90,6 +90,15 @@ This setup includes additional Airflow providers for enhanced functionality:
      --conn-login SLoaiza \
      --conn-password airflow \
      --conn-schema customers_db
+   
+   # Create PostgreSQL connection for SQL sensor pipeline
+   airflow connections add 'postgres_connection_laptop_db' \
+     --conn-type postgres \
+     --conn-host localhost \
+     --conn-port 5432 \
+     --conn-login SLoaiza \
+     --conn-password airflow \
+     --conn-schema laptop_db
    ```
    
    **SQLite Connection Example:**
@@ -135,6 +144,8 @@ The Airflow configuration file is located at `airflow_home/airflow.cfg`. Key set
    - `sqllite_taskapi_dags.py` - SQLite data pipeline with TaskAPI
    - `branching_taskapi_dags.py` - Conditional branching examples
    - `postgres_pipeline_dags.py` - **Complete PostgreSQL data pipeline with SQL operations**
+   - `pipeline_with_sql_sensor.py` - **SQL Sensor example with PostgreSQL data processing**
+   - `simple_file_sensor.py` - **File Sensor example for monitoring file availability**
 
 3. **TaskFlow API Examples**:
    - `custom_taskflow_dag.py`: Demonstrates modern TaskFlow API syntax with Extract-Transform-Load pattern
@@ -168,7 +179,23 @@ The Airflow configuration file is located at `airflow_home/airflow.cfg`. Key set
    - Inserts data using TaskAPI and SQLite hooks
    - Requires `my_prod_database` connection setup
 
-7. **Refresh DAGs**: If changes aren't visible, run:
+7. **SQL Sensor Pipeline DAG** (`pipeline_with_sql_sensor.py`):
+   - **Demonstrates advanced SQL sensor capabilities**
+   - Creates laptops and premium_laptops tables with PostgreSQL
+   - Uses `SqlSensor` to monitor for data conditions (premium laptops with price > 500)
+   - Automatically triggers data processing when sensor condition is met
+   - Performs data filtering and table cleanup operations
+   - Shows sensor timeout and poke_interval configuration
+   - Requires `postgres_connection_laptop_db` connection setup
+
+8. **File Sensor DAG** (`simple_file_sensor.py`):
+   - **Basic file monitoring example**
+   - Uses `FileSensor` to wait for file availability at specified path
+   - Monitors `tmp/laptops.csv` file creation
+   - Demonstrates sensor configuration with timeout (10 minutes) and poke_interval (10 seconds)
+   - Shows absolute file path monitoring for external file dependencies
+
+9. **Refresh DAGs**: If changes aren't visible, run:
    ```bash
    airflow dags reserialize
    ```
@@ -194,7 +221,9 @@ pkill -f airflow
 │   ├── custom_xcom_taskflow_dags.py # XCom data passing (TaskFlow API)
 │   ├── sqllite_taskapi_dags.py # SQLite data pipeline
 │   ├── branching_taskapi_dags.py # Conditional branching examples
-│   └── postgres_pipeline_dags.py # PostgreSQL data pipeline with SQL operations
+│   ├── postgres_pipeline_dags.py # PostgreSQL data pipeline with SQL operations
+│   ├── pipeline_with_sql_sensor.py # SQL Sensor example with PostgreSQL
+│   └── simple_file_sensor.py # File Sensor monitoring example
 ├── datasets/                 # Data files for DAGs
 │   ├── car_data.csv          # Sample car data
 │   └── my_sqlite.db          # SQLite database for data storage
@@ -207,6 +236,8 @@ pkill -f airflow
 │   ├── insert_customers.sql
 │   ├── insert_customer_purchases.sql
 │   └── joining_table.sql
+├── tmp/                      # Temporary files and sensor monitoring
+│   └── laptops.csv           # File monitored by file sensor DAG
 ├── logs/                     # Additional logs
 ├── plugins/                  # Custom plugins (if needed)
 ├── start_airflow.sh          # Manual start script (API server + scheduler)
@@ -223,9 +254,10 @@ The setup uses PostgreSQL for both Airflow metadata and data processing pipeline
    - Stores DAG runs, task instances, connections, etc.
    - Automatically managed by Airflow
 
-2. **Data Processing Database**: `customers_db` (created by DAGs)
-   - Used by PostgreSQL pipeline DAG for data processing
-   - Created automatically by the postgres_pipeline_dags.py
+2. **Data Processing Databases**: 
+   - `customers_db` (created by DAGs) - Used by PostgreSQL pipeline DAG for data processing
+   - `laptop_db` (created by DAGs) - Used by SQL sensor pipeline DAG for laptop data processing
+   - Created automatically by their respective DAGs
 
 #### Setup & Basic Commands
 
@@ -237,11 +269,13 @@ brew services start postgresql@15
 # Create databases
 psql -d postgres -c "CREATE DATABASE airflow_db;"
 psql -d postgres -c "CREATE DATABASE customers_db;"
+psql -d postgres -c "CREATE DATABASE laptop_db;"
 
 # Common commands
 psql -d postgres -c "\l"                    # List databases
 psql -d airflow_db -c "\dt"                 # List tables in airflow_db
 psql -d customers_db -c "\dt"               # List tables in customers_db
+psql -d laptop_db -c "\dt"                  # List tables in laptop_db
 psql -d postgres -c "\d table_name"         # Describe table
 ```
 
@@ -259,6 +293,15 @@ airflow connections add 'postgres_connection' \
     --conn-login SLoaiza \
     --conn-password airflow \
     --conn-schema customers_db
+
+# Create connection for SQL sensor pipeline
+airflow connections add 'postgres_connection_laptop_db' \
+    --conn-type postgres \
+    --conn-host localhost \
+    --conn-port 5432 \
+    --conn-login SLoaiza \
+    --conn-password airflow \
+    --conn-schema laptop_db
 ```
 
 #### Common SQL Operations
@@ -439,6 +482,38 @@ This DAG demonstrates working with SQLite databases:
 2. **Database Operations**: Creates tables and inserts data into SQLite
 3. **Data Processing**: Filters and processes car data
 4. **Output Generation**: Creates filtered datasets like `two_seaters.csv`
+
+### SQL Sensor Pipeline (`pipeline_with_sql_sensor.py`)
+
+This DAG demonstrates advanced sensor capabilities with SQL conditions:
+
+1. **Table Setup**: Creates `laptops` and `premium_laptops` tables in PostgreSQL
+2. **SQL Sensor**: Uses `SqlSensor` to monitor for specific data conditions
+   - Waits for premium laptops (price > 500 euros) to exist in the database
+   - Configurable timeout (10 minutes) and poke interval (10 seconds)
+3. **Conditional Processing**: Triggers downstream tasks only when sensor condition is met
+4. **Data Processing**: Inserts filtered premium laptop data and cleans up source table
+5. **Database Management**: Demonstrates proper table lifecycle management
+
+**Key Features:**
+- Shows how to use SQL-based sensors for data-driven workflows
+- Demonstrates conditional task execution based on database state
+- Uses PostgreSQL connection: `postgres_connection_laptop_db`
+
+### File Sensor Pipeline (`simple_file_sensor.py`)
+
+This DAG demonstrates file system monitoring capabilities:
+
+1. **File Monitoring**: Uses `FileSensor` to wait for file availability
+   - Monitors absolute file path: `/tmp/laptops.csv`
+   - Configurable timeout (10 minutes) and poke interval (10 seconds)
+2. **External Dependencies**: Shows how to wait for external file creation
+3. **File System Integration**: Demonstrates integration with file-based workflows
+
+**Key Features:**
+- Simple file monitoring without additional connections required
+- Absolute path monitoring for external file dependencies
+- Foundation for file-based data ingestion pipelines
 
 ## Clean up local db
 

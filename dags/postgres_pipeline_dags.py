@@ -41,4 +41,10 @@ with DAG(
         sql='insert_customer_purchases.sql'
     )
 
-    create_table_customers >> create_table_purchases >> insert_customers >> insert_purchases
+    joining_table = SQLExecuteQueryOperator(
+        task_id="joining_table",
+        conn_id='postgres_connection',
+        sql='joining_table.sql'
+    )
+
+    create_table_customers >> create_table_purchases >> insert_customers >> insert_purchases >> joining_table

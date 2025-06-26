@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import csv
 from airflow import DAG
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 
 default_args = {
     'owner': 'airflow',
@@ -72,11 +72,11 @@ with DAG(
         }
     )
 
-    saving_to_csv = PythonOperator(
+    saving_to_csv_task = PythonOperator(
         task_id='saving_to_csv',
         python_callable=saving_to_csv
     )
 
     create_table_customers >> create_table_purchases >> \
     [insert_customers, insert_purchases] >> \
-    joining_table >> filtering_customers >> saving_to_csv
+    joining_table >> filtering_customers >> saving_to_csv_task

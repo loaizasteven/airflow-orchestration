@@ -47,4 +47,21 @@ with DAG(
         sql='joining_table.sql'
     )
 
-    create_table_customers >> create_table_purchases >> insert_customers >> insert_purchases >> joining_table
+    filtering_customers = SQLExecuteQueryOperator(
+        task_id="filtering_customers",
+        conn_id='postgres_connection',
+        sql="""
+            SELECT name, product, price
+            FROM complete_customer_details
+            WHERE price BETWEEN %(lower_bound)s AND %(upper_bound)s
+        """
+        parameters={
+            'lower_bound': 5,
+            'upper_bound': 10
+        }
+    )
+
+
+    create_table_customers >> create_table_purchases >> \
+    insert_customers >> insert_purchases >> \
+    joining_table >> filtering_customers

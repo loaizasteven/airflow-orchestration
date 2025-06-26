@@ -1,8 +1,10 @@
+DROP TABLE IF EXISTS complete_customer_details;
+
 CREATE TABLE complete_customer_details
 AS 
 SELECT 
-    customer.id,
-    customer.name,
+    customers.id,
+    customers.name,
     customer_purchases.product,
     customer_purchases.price
 FROM customers

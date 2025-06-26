@@ -63,5 +63,5 @@ with DAG(
 
 
     create_table_customers >> create_table_purchases >> \
-    insert_customers >> insert_purchases >> \
+    [insert_customers, insert_purchases] >> \
     joining_table >> filtering_customers

@@ -1,13 +1,24 @@
 from datetime import datetime, timedelta
 
+import csv
 from airflow import DAG
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from airflow.operators.python import PythonOperator
 
 default_args = {
     'owner': 'airflow',
     'start_date': datetime(2025, 1, 1),
     'retries': 0
 }
+
+def saving_to_csv(ti):
+    filtered_data = ti.xcom_pull(task_ids='filtering_customers')
+
+    with open('./output/filtered_data.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Name', 'Product', 'Price'])
+        for row in filtered_data:
+            writer.writerow(row)
 
 with DAG(
     dag_id='postgres_pipeline_dags',
@@ -61,7 +72,11 @@ with DAG(
         }
     )
 
+    saving_to_csv = PythonOperator(
+        task_id='saving_to_csv',
+        python_callable=saving_to_csv
+    )
 
     create_table_customers >> create_table_purchases >> \
     [insert_customers, insert_purchases] >> \
-    joining_table >> filtering_customers
+    joining_table >> filtering_customers >> saving_to_csv
